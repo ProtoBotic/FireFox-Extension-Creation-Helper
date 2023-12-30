@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Box Toolkit</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.5/jszip.min.js"></script>
+    <style>        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f2f2f2;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .toolbar button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .toolbar button:hover {
+            background-color: #45a049;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .quadrant {
+            flex: 1;
+            min-width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
+
+        .download-all {
+            flex: 1;
+            min-width: 250px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            order: 99; /* Place at the end */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .close-btn {
+            color: #333; /* Dark gray color */
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px;
+            background: none; /* No background */
+            font-weight: bold;
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .preview-btn {
+            background-color: #008CBA;
+        }
+
+        .preview-btn:hover {
+            background-color: #0073a1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            max-height: 400px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Text Box Toolkit</h1>
+
+<div class="toolbar">
+    <button id="addFileTextBoxBtn">Add File TextBox</button>
+    <button id="importBtn">Import</button>
+</div>
+
+<div class="container" id="textBoxContainer">
+    <!-- Text box sections will be dynamically added here -->
+</div>
+
+<div class="download-all">
+    <label for="folderName">Folder Name:</label>
+    <input type="text" id="folderName" placeholder="Enter folder name"><br>
+    <button id="exportAllBtn2">Download All</button>
+</div>
+
+<script>
+    document.getElementById('addFileTextBoxBtn').addEventListener('click', addFileTextBox);
+    document.getElementById('exportAllBtn2').addEventListener('click', exportAll);
+    document.getElementById('importBtn').addEventListener('click', importFile);
+
+    function addFileTextBox() {
+        const textBoxContainer = document.getElementById('textBoxContainer');
+        const fileCount = textBoxContainer.querySelectorAll('.quadrant').length + 1;
+
+        const newFileTextBox = document.createElement('div');
+        newFileTextBox.classList.add('quadrant');
+        newFileTextBox.innerHTML = `
+            <button class="close-btn" onclick="removeFileTextBox(this)">X</button>
+            <label for="title${fileCount}">Title:</label>
+            <input type="text" id="title${fileCount}" placeholder="Enter file title"><br>
+            <textarea id="textbox${fileCount}" rows="10" cols="30" placeholder="Enter text here"></textarea><br>
+            Extension: <input type="text" id="extension${fileCount}" placeholder=".txt" value="">
+            <button onclick="exportText('textbox${fileCount}', 'extension${fileCount}', 'title${fileCount}')">Export</button>
+            <button class="preview-btn" onclick="openPreview('textbox${fileCount}', 'extension${fileCount}')">Preview</button>
+            <div class="modal" id="preview${fileCount}">
+                <div class="modal-content">
+                    <span class="close" onclick="closePreview('preview${fileCount}')">&times;</span>
+                    <div class="preview-box" id="previewContent${fileCount}"></div>
+                </div>
+            </div>
+        `;
+
+        textBoxContainer.appendChild(newFileTextBox);
+    }
+
+    function exportText(textboxId, extensionId, titleId) {
+        const textbox = document.getElementById(textboxId);
+        const extension = document.getElementById(extensionId).value;
+        const title = document.getElementById(titleId).value || "Untitled";
+        const content = textbox.value;
+
+        const blob = new Blob([content], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = window.URL.createObjectURL(blob);
+        a.download = `${title}${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    function openPreview(textboxId, extensionId) {
+        const textbox = document.getElementById(textboxId);
+        const extension = document.getElementById(extensionId).value;
+        const previewModalId = `preview${textboxId.slice(-1)}`;
+        const previewModal = document.getElementById(previewModalId);
+        const previewContentId = `previewContent${textboxId.slice(-1)}`;
+        const previewContent = document.getElementById(previewContentId);
+
+        switch (extension) {
+            case '.txt':
+                previewContent.innerText = textbox.value;
+                break;
+            case '.html':
+                previewContent.innerHTML = textbox.value;
+                break;
+            case '.jpg':
+            case '.jpeg':
+            case '.png':
+            case '.gif':
+                previewContent.innerHTML = `<img src="data:image/${extension.slice(1)};base64,${btoa(textbox.value)}">`;
+                break;
+            default:
+                previewContent.innerText = "Preview not supported for this file type.";
+        }
+
+        previewModal.style.display = 'block';
+    }
+
+    function closePreview(previewId) {
+        const previewModal = document.getElementById(previewId);
+        previewModal.style.display = 'none';
+    }
+
+    function removeFileTextBox(button) {
+        const textBoxContainer = document.getElementById('textBoxContainer');
+        const quadrant = button.parentNode;
+        textBoxContainer.removeChild(quadrant);
+    }
+
+    function exportAll() {
+        const folderName = document.getElementById('folderName').value || "Untitled_Folder";
+        const zip = new JSZip();
+
+        document.querySelectorAll('.quadrant').forEach((quadrant, index) => {
+            const title = quadrant.querySelector(`#title${index + 1}`).value || `Document${index + 1}`;
+            const extension = quadrant.querySelector(`#extension${index + 1}`).value;
+            const content = quadrant.querySelector(`#textbox${index + 1}`).value;
+
+            const fileName = `${title}${extension}`;
+            zip.file(fileName, content);
+        });
+
+        zip.generateAsync({ type: "blob" })
+            .then(function (content) {
+                const a = document.createElement('a');
+                const url = URL.createObjectURL(content);
+                a.href = url;
+                a.download = `${folderName}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+    }
+
+    function importFile() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.html, .txt, .js, .css'; // Add more file types as needed
+
+        input.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    const fileName = file.name;
+                    const extension = `.${fileName.split('.').pop()}`;
+                    addImportedTextBox(content, fileName, extension);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        input.click();
+    }
+
+        function addImportedTextBox(content, fileName, extension) {
+        const textBoxContainer = document.getElementById('textBoxContainer');
+        const fileCount = textBoxContainer.querySelectorAll('.quadrant').length + 1;
+
+        const newFileTextBox = document.createElement('div');
+        newFileTextBox.classList.add('quadrant');
+        newFileTextBox.innerHTML = `
+            <button class="close-btn" onclick="removeFileTextBox(this)">X</button>
+            <label for="title${fileCount}">Title:</label>
+            <input type="text" id="title${fileCount}" value="${fileName.replace(/\.[^/.]+$/, '')}"><br>
+            <div contenteditable="true" id="textbox${fileCount}" class="html-textbox">${escapeHTML(content)}</div><br>
+            Extension: <input type="text" id="extension${fileCount}" value="${extension}">
+            <button onclick="exportText('textbox${fileCount}', 'extension${fileCount}', 'title${fileCount}')">Export</button>
+            <button class="preview-btn" onclick="openPreview('textbox${fileCount}', 'extension${fileCount}')">Preview</button>
+            <a download="${fileName}" href="data:text/plain;charset=utf-8,${encodeURIComponent(content)}">
+                <button>Download</button>
+            </a>
+            <div class="modal" id="preview${fileCount}">
+                <div class="modal-content">
+                    <span class="close" onclick="closePreview('preview${fileCount}')">&times;</span>
+                    <div class="preview-box" id="previewContent${fileCount}"></div>
+                </div>
+            </div>
+        `;
+
+        textBoxContainer.appendChild(newFileTextBox);
+    }
+
+    function escapeHTML(html) {
+        return html.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Close preview boxes when clicking outside of them
+    window.onclick = function(event) {
+        if (!event.target.matches('.preview-btn')) {
+            const previewModals = document.querySelectorAll('.modal');
+            previewModals.forEach(modal => modal.style.display = 'none');
+        }
+    };
+
+</script>
+
+</body>
+</html>
