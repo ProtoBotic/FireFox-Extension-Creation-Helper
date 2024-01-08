@@ -1,5 +1,6 @@
 # FireFox-Extension-Creation-Helper
-A simple self contained program that can help the user create FireFox Extensions easier.
+A One click start single HTML File Thats a self contained program that can help the user create FireFox Extensions easier.
+
 its pretty basic right now but im working on it... kinda
 
 its mostly just a multifile editor right now
